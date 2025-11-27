@@ -581,7 +581,7 @@ window.openCourse = openCourse; window.completeModule = completeModule; window.o
 </script>
 <script>
 function updateVisitorCounter() {
-  fetch('https://api.countapi.xyz/hit/soc-analyst.dev/visitors')
+  fetch('https://api.countapi.xyz/hit/socanalyst_global/visitcounter')
     .then(res => res.json())
     .then(data => {
       document.getElementById('visitorCounter').innerText =
