@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cybersecurity Training Portal</title>
+
+<style>
+/* --- GLOBAL MODERN UI --- */
+body{
+  margin:0; font-family:Segoe UI, Arial; background:#e0e4f1;
+}
+header{
+  background:rgba(30,30,60,0.9);
+  color:white; padding:20px; text-align:center;
+  backdrop-filter:blur(10px);
+  box-shadow:0 4px 15px rgba(0,0,0,0.2);
+  position: sticky; top:0; z-index: 1000;
+}
+.page{ display:none; padding:25px; animation:fadeIn .4s ease; }
+@keyframes fadeIn{ from{opacity:0; transform:translateY(10px);} to{opacity:1;} }
+
+button{
+  padding:12px 20px; border:none; border-radius:8px;
+  background:#1e1e3f; color:white; cursor:pointer;
+  transition:0.2s; font-size:15px;
+}
+button:hover{ background:#34346a; }
+
+input, textarea, select{
+  width:100%; padding:12px; border-radius:8px; border:1px solid #ccc;
+  margin-top:10px; font-size:15px; box-sizing:border-box;
+}
+textarea{ height:180px; resize: vertical; }
+
+.container{
+  display:flex; flex-wrap:wrap; gap:20px; margin-top:25px;
+}
+
+.courseCard{
+  width:260px; background:rgba(255,255,255,0.9); padding:20px;
+  border-radius:15px; text-align:center;
+  box-shadow:0 4px 15px rgba(0,0,0,0.1);
+  cursor:pointer; transition:0.3s;
+}
+.courseCard:hover{ transform:scale(1.05); box-shadow:0 6px 20px rgba(0,0,0,0.15); }
+
+.moduleBox{
+  padding:20px; background:white; border-radius:12px;
+  box-shadow:0 2px 10px rgba(0,0,0,0.1); margin-bottom:15px;
+}
+
+.progress{ background:#ddd; height:22px; border-radius:10px; margin:15px 0; }
+.progressBar{
+  background:#4caf50; height:22px; width:0%; border-radius:10px;
+  color:white; text-align:center; font-size:13px; line-height:22px;
+}
+
+.quizQuestion{ margin-bottom:15px; background:#fff; padding:15px; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+.quizQuestion h3{ margin:0 0 10px 0; font-size:16px;}
+.quizQuestion label{ display:block; margin-bottom:5px; cursor:pointer; }
+</style>
+
+<script>
+// --- ADMIN EDIT ONLY ---
+const FAST2SMS_API_KEY = "R9VYQFMk7qPEdhs3D5B6Ggw1vXynNTObWcmaxAZtj2ri8HfzlIoCOHpzclS8dKPgv3fWRrbuL0FiajB7";
+// --- END ADMIN EDIT ---
+
+/* GLOBAL */
+let realOTP="";
+
+/* Hide all pages */
+function hideAll(){ document.querySelectorAll('.page').forEach(p=>p.style.display='none'); }
+
+/* DEFAULT COURSES */
+let defaultCourses=["L1 Security Analyst","L2 Security Analyst","SOC Manager","Threat Hunter","SOC Engineer","Incident Responder"];
+
+/* ONLOAD */
+window.onload=function(){
+  // User Course List
+  let list=document.getElementById("courseList");
+  defaultCourses.forEach(c=>{
+    let d=document.createElement("div");
+    d.className="courseCard"; d.innerText=c;
+    d.onclick=()=>openCourse(c);
+    list.appendChild(d);
+  });
+
+  // Admin Select
+  let adminSel=document.getElementById("adminCourseSelect");
+  defaultCourses.forEach(c=>{
+    let op=document.createElement("option"); op.innerText=c;
+    adminSel.appendChild(op);
+  });
+
+  // Resume progress if exists
+  let lastCourse = localStorage.getItem("lastCourse");
+  if(lastCourse){ openCourse(lastCourse); }
+};
+
+/* SEND OTP */
+function sendOTP(){
+    let mobile = document.getElementById("loginMobile").value.trim();
+    if(!mobile || mobile.length!==10){ alert("Enter valid 10-digit mobile number"); return; }
+
+    realOTP = Math.floor(1000+Math.random()*9000).toString();
+    const message = `Your Cybersecurity Portal OTP is: ${realOTP}`;
+
+    fetch("https://www.fast2sms.com/dev/bulkV2", {
+        method:"POST",
+        headers:{
+            "authorization": FAST2SMS_API_KEY,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            route: "v3",
+            sender_id: "FSTSMS",
+            message: message,
+            language: "english",
+            flash: 0,
+            numbers: mobile
+        })
+    })
+    .then(res=>res.json())
+    .then(data=>{
+        if(data.return){
+            alert("OTP sent successfully!");
+            document.getElementById("otpArea").style.display="block";
+        } else { alert("Failed to send OTP: "+JSON.stringify(data)); }
+    })
+    .catch(err=>alert("Error sending OTP: "+err));
+}
+
+/* VERIFY OTP */
+function verifyOTP(){
+    if(document.getElementById("otpInput").value === realOTP){
+        hideAll(); document.getElementById("userDashboard").style.display="block";
+    } else alert("Incorrect OTP");
+}
+
+/* ADMIN LOGIN */
+function loginAdmin(){
+    if(document.getElementById("adminPass").value==="admin123"){
+        hideAll(); document.getElementById("adminPanel").style.display="block";
+    } else alert("Wrong Password");
+}
+
+/* OPEN COURSE */
+function openCourse(c){
+    hideAll();
+    document.getElementById("courseTitle").innerText=c;
+    document.getElementById("courseContent").innerHTML = localStorage.getItem("course_"+c) || "<p>No content added yet.</p>";
+    document.getElementById("coursePage").style.display="block";
+    localStorage.setItem("lastCourse", c);
+
+    // update progress
+    let progress = localStorage.getItem("progress_"+c) || 0;
+    updateProgress(progress);
+}
+
+/* PROGRESS BAR */
+function updateProgress(p){
+    document.getElementById("progressBar").style.width = p+"%";
+    document.getElementById("progressBar").innerText = p+"%";
+    localStorage.setItem("progress_"+document.getElementById("courseTitle").innerText, p);
+}
+
+/* QUIZ SYSTEM */
+function startQuiz(){ 
+    hideAll(); 
+    document.getElementById("quizPage").style.display="block"; 
+    buildQuiz(); 
+}
+
+function buildQuiz(){
+    let data = localStorage.getItem("quiz_"+document.getElementById("courseTitle").innerText);
+    let q = JSON.parse(data||"[]");
+    let f = document.getElementById("quizForm"); f.innerHTML="";
+    if(q.length===0){ f.innerHTML="<p>No quiz added yet.</p>"; return; }
+
+    q.forEach((x,i)=>{
+        let div = document.createElement("div");
+        div.className="quizQuestion";
+        div.innerHTML = `<h3>${x.q}</h3>` + x.opt.map(o=>`<label><input name='q${i}' type='radio' value='${o}'> ${o}</label>`).join("");
+        f.appendChild(div);
+    });
+}
+
+function submitQuiz(){
+    let data = localStorage.getItem("quiz_"+document.getElementById("courseTitle").innerText);
+    let q = JSON.parse(data||"[]");
+    let score=0;
+    q.forEach((x,i)=>{
+        let v=document.querySelector(`input[name='q${i}']:checked`);
+        if(v && v.value===x.ans) score++;
+    });
+    let pct = Math.round((score/q.length)*100);
+    generateCertificate(pct);
+}
+
+/* CERTIFICATE GENERATOR */
+function generateCertificate(score){
+    hideAll();
+    document.getElementById("certificatePage").style.display="block";
+
+    let name = document.getElementById("loginName").value || "User";
+    let course = document.getElementById("courseTitle").innerText;
+    let certTemplate = localStorage.getItem("certificate_template"); // pdf/image base64
+
+    // Using simple HTML-based certificate
+    let html = `
+    <div style="padding:30px; text-align:center; font-family:Segoe UI, Arial; background:#f2f4f8; height:100%;">
+        <h1>🎓 Certificate of Completion</h1>
+        <h2>${name}</h2>
+        <p>has successfully completed the course</p>
+        <h3>${course}</h3>
+        <p>with score: ${score}%</p>
+    </div>`;
+    document.getElementById("certFrame").srcdoc = html;
+}
+
+/* DOWNLOAD CERTIFICATE */
+function downloadCertificate(){ 
+    let printWindow = window.open('', 'PRINT', 'height=600,width=800');
+    printWindow.document.write(document.getElementById("certFrame").srcdoc);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+}
+
+/* ADMIN FUNCTIONS */
+function loadAdminData(){
+    let c = document.getElementById("adminCourseSelect").value;
+    document.getElementById("adminCourseData").value = localStorage.getItem("course_"+c)||"";
+    document.getElementById("quizData").value = localStorage.getItem("quiz_"+c)||"";
+}
+
+function appendMedia(){
+    let img = document.getElementById("adminImage").files[0];
+    let vid = document.getElementById("adminVideo").value;
+    let area = document.getElementById("adminCourseData");
+
+    if(img){
+        let r = new FileReader();
+        r.onload = e => { area.value += `<img src='${e.target.result}' style='width:100%; border-radius:10px;'>`; };
+        r.readAsDataURL(img);
+    }
+    if(vid){ area.value += `<iframe style='width:100%; height:300px;' src='${vid}'></iframe>`; }
+}
+
+function saveCourse(){
+    let c = document.getElementById("adminCourseSelect").value;
+    localStorage.setItem("course_"+c, document.getElementById("adminCourseData").value);
+    alert("Course Saved");
+}
+
+function saveQuiz(){
+    let c = document.getElementById("adminCourseSelect").value;
+    let raw = document.getElementById("quizData").value;
+    localStorage.setItem("quiz_"+c, raw);
+    alert("Quiz Saved");
+}
+
+function saveCertificateTemplate(){
+    let f = document.getElementById("certTemplate").files[0];
+    let r = new FileReader();
+    r.onload=e=>{ localStorage.setItem("certificate_template", e.target.result); alert("Template Uploaded"); };
+    r.readAsDataURL(f);
+}
+
+/* NAVIGATION */
+function goBack(){ hideAll(); document.getElementById("userDashboard").style.display="block"; }
+function logout(){ hideAll(); document.getElementById("loginPage").style.display="block"; }
+</script>
+
+</head>
+<body>
+<header><h1>Cybersecurity Portal</h1></header>
+
+<!-- LOGIN PAGE -->
+<div id="loginPage" class="page" style="display:block;">
+  <h2>User Login</h2>
+  <input id="loginName" placeholder="Full Name">
+  <input id="loginMobile" placeholder="Mobile Number">
+  <button onclick="sendOTP()">Send OTP</button>
+
+  <div id="otpArea" style="display:none;">
+    <input id="otpInput" placeholder="Enter OTP">
+    <button onclick="verifyOTP()">Verify OTP</button>
+  </div>
+
+  <hr>
+  <h3>Admin Login</h3>
+  <input id="adminPass" placeholder="Admin Password">
+  <button onclick="loginAdmin()">Login as Admin</button>
+</div>
+
+<!-- USER DASHBOARD -->
+<div id="userDashboard" class="page">
+  <h2>Available Courses</h2>
+  <div class="container" id="courseList"></div>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<!-- COURSE PAGE -->
+<div id="coursePage" class="page">
+  <h2 id="courseTitle"></h2>
+  <div class="progress"><div class="progressBar" id="progressBar">0%</div></div>
+  <div id="courseContent"></div>
+  <button onclick="startQuiz()">Start Final Quiz</button>
+  <button onclick="goBack()">Back</button>
+</div>
+
+<!-- QUIZ PAGE -->
+<div id="quizPage" class="page">
+  <h2>Final Quiz</h2>
+  <form id="quizForm"></form>
+  <button onclick="submitQuiz()">Submit Quiz</button>
+</div>
+
+<!-- CERTIFICATE PAGE -->
+<div id="certificatePage" class="page">
+  <h2>Certificate</h2>
+  <iframe id="certFrame" style="width:100%; height:500px;"></iframe>
+  <button onclick="downloadCertificate()">Download Certificate</button>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel" class="page">
+  <h2>Admin Panel</h2>
+
+  <h3>Select Course</h3>
+  <select id="adminCourseSelect" onchange="loadAdminData()"></select>
+
+  <h3>Course Content Editor</h3>
+  <textarea id="adminCourseData"></textarea>
+  <input id="adminImage" type="file" accept="image/*">
+  <input id="adminVideo" placeholder="Paste video URL">
+  <button onclick="appendMedia()">Add Media</button>
+  <button onclick="saveCourse()">Save Course</button>
+
+  <h3>Upload Certificate Template (PDF)</h3>
+  <input type="file" id="certTemplate" accept="application/pdf">
+  <button onclick="saveCertificateTemplate()">Upload Template</button>
+
+  <h3>Quiz Manager</h3>
+  <textarea id="quizData" placeholder="Add quiz questions as JSON (q,opt[],ans)"></textarea>
+  <button onclick="saveQuiz()">Save Quiz</button>
+
+  <button onclick="logout()">Logout</button>
+</div>
+
+</body>
+</html>
