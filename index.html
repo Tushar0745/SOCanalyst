@@ -234,7 +234,8 @@ textarea{min-height:100px}
 </div>
 
 <div class="footer">
-    <div id="visitorCounter" style="margin-top:6px;font-size:12px;color:#666;">Loading visitors...</div>
+  <div id="visitorCounter" style="margin-top:6px;font-size:12px;color:#666;">Loading visitors...</div>
+
   © SOCanalyst — Modules & quizzes saved locally in your browser.
 </div>
 
@@ -580,17 +581,14 @@ function escapeHtml(unsafe) {
 window.openCourse = openCourse; window.completeModule = completeModule; window.openModuleDetail = openModuleDetail; window.startQuiz = startQuiz; window.submitQuiz = submitQuiz; window.requestCertificate = requestCertificate; window.sendFeedback = sendFeedback; window.saveModules = saveModules; window.adminAddModule = adminAddModule; window.loadModulesForAdmin = loadModulesForAdmin; window.saveQuizFromAdmin = saveQuizFromAdmin; window.renderAdminQuizEditor = renderAdminQuizEditor; window.adminAddQuestion = adminAddQuestion; window.openAdmin = openAdmin; window.showHome = showHome; window.showCourses = showCourses; window.showCertRequest = showCertRequest;
 </script>
 <script>
-function updateVisitorCounter() {
-  fetch('https://api.countapi.xyz/hit/socanalyst_global/visitcounter')
-    .then(res => res.json())
-    .then(data => {
-      document.getElementById('visitorCounter').innerText =
-        "Visitors: " + data.value;
-    })
-    .catch(() => {
-      document.getElementById('visitorCounter').innerText =
-        "Visitors: offline";
-    });
+async function updateVisitorCounter() {
+  try {
+    const res = await fetch("https://counterapi.dev/api/SOCanalyst/visits/incr");
+    const data = await res.json();
+    document.getElementById("visitorCounter").innerText = "Visitors: " + data.count;
+  } catch (e) {
+    document.getElementById("visitorCounter").innerText = "Visitors: offline";
+  }
 }
 updateVisitorCounter();
 </script>
